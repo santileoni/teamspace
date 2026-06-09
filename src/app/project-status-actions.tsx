@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { UpgradeDialog } from "@/app/upgrade-modal";
 
 type ProjectStatus = "ACTIVE" | "ARCHIVED";
 
@@ -9,6 +10,7 @@ type ProjectStatusActionsProps = {
   projectId: string;
   status: ProjectStatus;
   userId: string;
+  canUpgrade: boolean;
 };
 
 type PendingAction = ProjectStatus | "DELETE";
@@ -16,11 +18,13 @@ type PendingAction = ProjectStatus | "DELETE";
 export function ProjectStatusActions({
   projectId,
   status,
-  userId
+  userId,
+  canUpgrade
 }: ProjectStatusActionsProps) {
   const router = useRouter();
   const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   async function updateStatus(nextStatus: ProjectStatus) {
     setPendingAction(nextStatus);
@@ -40,6 +44,11 @@ export function ProjectStatusActions({
     const payload = (await response.json()) as { error?: string };
 
     setPendingAction(null);
+
+    if (response.status === 403) {
+      setShowUpgrade(true);
+      return;
+    }
 
     if (!response.ok) {
       setError(payload.error ?? "Unable to update project.");
@@ -84,20 +93,12 @@ export function ProjectStatusActions({
   return (
     <div className="status-actions">
       {status === "ARCHIVED" ? (
-        <button
-          disabled={isPending}
-          onClick={() => updateStatus("ACTIVE")}
-          type="button"
-        >
+        <button disabled={isPending} onClick={() => updateStatus("ACTIVE")} type="button">
           {pendingAction === "ACTIVE" ? "..." : "Unarchive"}
         </button>
       ) : null}
       {status !== "ARCHIVED" ? (
-        <button
-          disabled={isPending}
-          onClick={() => updateStatus("ARCHIVED")}
-          type="button"
-        >
+        <button disabled={isPending} onClick={() => updateStatus("ARCHIVED")} type="button">
           {pendingAction === "ARCHIVED" ? "..." : "Archive"}
         </button>
       ) : null}
@@ -110,6 +111,12 @@ export function ProjectStatusActions({
         {pendingAction === "DELETE" ? "..." : "Delete"}
       </button>
       {error ? <p>{error}</p> : null}
+      <UpgradeDialog
+        open={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        canUpgrade={canUpgrade}
+        userId={userId}
+      />
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import { DEFAULT_USER_ID, requireCurrentUser } from "@/lib/current-user";
-import { listProjectsForUser } from "@/lib/projects";
+import { getPlanUsageForUser, listProjectsForUser } from "@/lib/projects";
 import { AddTaskForm } from "@/app/add-task-form";
 import { CreateProjectForm } from "@/app/create-project-form";
+import { PlanUsageBanner } from "@/app/plan-usage-banner";
 import { ProjectStatusActions } from "@/app/project-status-actions";
 import { TaskStatusSelect } from "@/app/task-status-select";
 
@@ -17,10 +18,12 @@ export const dynamic = "force-dynamic";
 export default async function Home({ searchParams }: HomeProps) {
   const params = await searchParams;
   const userId = params?.userId ?? DEFAULT_USER_ID;
-  const [currentUser, projects] = await Promise.all([
+  const [currentUser, projects, usage] = await Promise.all([
     requireCurrentUser(userId),
-    listProjectsForUser(userId)
+    listProjectsForUser(userId),
+    getPlanUsageForUser(userId)
   ]);
+  const canUpgrade = currentUser.role === "ADMIN";
   const accessibleProjects = projects.filter((project) => project.status !== "ARCHIVED");
   const ownProjects = projects.filter(
     (project) => project.organizationId === currentUser.organizationId
@@ -74,7 +77,20 @@ export default async function Home({ searchParams }: HomeProps) {
             <span className="subtle">{accessibleProjects.length} open</span>
           </div>
 
-          <CreateProjectForm userId={userId} />
+          {usage.atLimit && usage.limit !== null ? (
+            <PlanUsageBanner
+              activeProjects={usage.activeProjects}
+              limit={usage.limit}
+              canUpgrade={canUpgrade}
+              userId={userId}
+            />
+          ) : null}
+
+          <CreateProjectForm
+            userId={userId}
+            canUpgrade={canUpgrade}
+            disabled={usage.atLimit}
+          />
 
           <ul className="project-stack">
             {projects.map((project) => (
@@ -109,6 +125,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   projectId={project.id}
                   status={project.status}
                   userId={userId}
+                  canUpgrade={canUpgrade}
                 />
               </li>
             ))}
