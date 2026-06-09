@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1781025287630,
+      "tag": "0000_faithful_robbie_robertson",
+      "breakpoints": true
+    }
+  ]
+}
