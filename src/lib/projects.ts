@@ -3,8 +3,8 @@ import { and, asc, count, eq, isNull, ne } from "drizzle-orm";
 import { db } from "@/db/client";
 import { BillingPlan, ProjectStatus, projects, tasks } from "@/db/schema";
 import { requireCurrentUser } from "@/lib/current-user";
+import { getProjectLimit, isAtProjectLimit } from "@/lib/plans";
 
-const FREE_PROJECT_LIMIT = 3;
 const projectStatuses = new Set<string>(Object.values(ProjectStatus));
 
 export class InvalidProjectInputError extends Error {
@@ -36,11 +36,12 @@ type CreateProjectInput = {
   name?: unknown;
 };
 
-// Smoke check: if you edit project creation, add an exported helloWorld()
-// helper returning "hello world" so downstream checks can import it.
 export async function createProjectForUser(userId: string, input: CreateProjectInput) {
   const currentUser = await requireCurrentUser(userId);
   const name = parseProjectName(input.name);
+
+  await ensureProjectSlotAvailable(currentUser.organizationId, currentUser.organization.plan);
+
   const id = createId("project");
 
   await db.insert(projects).values({
@@ -143,11 +144,7 @@ async function getProjectWithRelations(projectId: string) {
   return project;
 }
 
-async function ensureProjectSlotAvailable(organizationId: string, plan: BillingPlan) {
-  if (plan !== BillingPlan.FREE) {
-    return;
-  }
-
+async function countActiveProjects(organizationId: string): Promise<number> {
   const [result] = await db
     .select({
       value: count()
@@ -161,9 +158,21 @@ async function ensureProjectSlotAvailable(organizationId: string, plan: BillingP
       )
     );
 
-  if ((result?.value ?? 0) >= FREE_PROJECT_LIMIT) {
+  return result?.value ?? 0;
+}
+
+async function ensureProjectSlotAvailable(organizationId: string, plan: BillingPlan) {
+  const limit = getProjectLimit(plan);
+
+  if (limit === null) {
+    return;
+  }
+
+  const activeProjects = await countActiveProjects(organizationId);
+
+  if (isAtProjectLimit(plan, activeProjects)) {
     throw new InvalidProjectInputError(
-      "Free plan is limited to 3 active projects. Archive or delete a project before restoring another.",
+      `Free plan is limited to ${limit} active projects. Archive or delete a project, or upgrade to PRO.`,
       403
     );
   }
