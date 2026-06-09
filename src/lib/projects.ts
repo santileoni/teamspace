@@ -17,10 +17,13 @@ export class InvalidProjectInputError extends Error {
 }
 
 export async function listProjectsForUser(userId: string) {
-  await requireCurrentUser(userId);
+  const currentUser = await requireCurrentUser(userId);
 
   return db.query.projects.findMany({
-    where: isNull(projects.deletedAt),
+    where: and(
+      eq(projects.organizationId, currentUser.organizationId),
+      isNull(projects.deletedAt)
+    ),
     with: {
       organization: true,
       tasks: {

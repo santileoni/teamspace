@@ -13,7 +13,8 @@ import {
 
 const fixture = {
   org: "test-list-org",
-  user: "test-list-user"
+  user: "test-list-user",
+  otherOrg: "test-list-other-org"
 };
 
 async function resetFixture() {
@@ -58,10 +59,12 @@ async function resetFixture() {
 
 async function cleanupFixture() {
   await db.delete(projects).where(eq(projects.organizationId, fixture.org));
+  await db.delete(projects).where(eq(projects.organizationId, fixture.otherOrg));
 
   await db.delete(users).where(eq(users.organizationId, fixture.org));
 
   await db.delete(organizations).where(eq(organizations.id, fixture.org));
+  await db.delete(organizations).where(eq(organizations.id, fixture.otherOrg));
 }
 
 describe("project lists", () => {
@@ -88,6 +91,26 @@ describe("project lists", () => {
       ProjectStatus.ACTIVE,
       ProjectStatus.ARCHIVED
     ]);
+  });
+
+  it("excludes projects that belong to other organizations", async () => {
+    await db.insert(organizations).values({
+      id: fixture.otherOrg,
+      name: "Other List Org",
+      slug: fixture.otherOrg
+    });
+    await db.insert(projects).values({
+      id: "test-otherorg-project",
+      name: "Other Org Project",
+      status: ProjectStatus.ACTIVE,
+      organizationId: fixture.otherOrg
+    });
+
+    const response = await requestProjects(fixture.user);
+    const ids = response.projects.map((project) => project.id);
+
+    expect(ids).toContain("test-list-active");
+    expect(ids).not.toContain("test-otherorg-project");
   });
 });
 
