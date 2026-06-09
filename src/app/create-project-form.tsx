@@ -2,16 +2,20 @@
 
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
+import { UpgradeDialog } from "@/app/upgrade-modal";
 
 type CreateProjectFormProps = {
   userId: string;
+  canUpgrade: boolean;
+  disabled?: boolean;
 };
 
-export function CreateProjectForm({ userId }: CreateProjectFormProps) {
+export function CreateProjectForm({ userId, canUpgrade, disabled = false }: CreateProjectFormProps) {
   const router = useRouter();
   const [name, setName] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showUpgrade, setShowUpgrade] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -29,6 +33,11 @@ export function CreateProjectForm({ userId }: CreateProjectFormProps) {
     const payload = (await response.json()) as { error?: string };
 
     setIsSubmitting(false);
+
+    if (response.status === 403) {
+      setShowUpgrade(true);
+      return;
+    }
 
     if (!response.ok) {
       setMessage(payload.error ?? "Unable to create project.");
@@ -52,12 +61,24 @@ export function CreateProjectForm({ userId }: CreateProjectFormProps) {
           placeholder="Q3 launch"
           type="text"
           value={name}
+          disabled={disabled}
         />
       </div>
-      <button disabled={isSubmitting} type="submit">
+      <button disabled={isSubmitting || disabled} type="submit">
         {isSubmitting ? "Creating..." : "Create"}
       </button>
+      {disabled ? (
+        <button type="button" className="upgrade-cta" onClick={() => setShowUpgrade(true)}>
+          Upgrade a PRO
+        </button>
+      ) : null}
       {message ? <p className="form-message">{message}</p> : null}
+      <UpgradeDialog
+        open={showUpgrade}
+        onClose={() => setShowUpgrade(false)}
+        canUpgrade={canUpgrade}
+        userId={userId}
+      />
     </form>
   );
 }

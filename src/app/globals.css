@@ -588,3 +588,59 @@ button:disabled {
     justify-content: flex-start;
   }
 }
+
+.plan-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid #f0c36d;
+  border-radius: 12px;
+  background: #fff8e6;
+}
+
+.plan-banner-text strong {
+  display: block;
+}
+
+.upgrade-cta {
+  background: #4c1d95;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+}
+
+.upgrade-cta:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.upgrade-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 50;
+}
+
+.upgrade-modal {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  max-width: 420px;
+  width: calc(100% - 2rem);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+}
+
+.upgrade-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
