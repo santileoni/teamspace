@@ -3,6 +3,7 @@ import { DEFAULT_USER_ID } from "@/lib/current-user";
 import {
   createProjectForUser,
   deleteProjectForUser,
+  getPlanUsageForUser,
   InvalidProjectInputError,
   listProjectsForUser,
   updateProjectStatusForUser
@@ -12,10 +13,14 @@ export async function GET(request: NextRequest) {
   const userId = getRequestUserId(request);
 
   try {
-    const projects = await listProjectsForUser(userId);
+    const [projects, usage] = await Promise.all([
+      listProjectsForUser(userId),
+      getPlanUsageForUser(userId)
+    ]);
 
     return NextResponse.json({
       userId,
+      usage,
       projects: projects.map((project) => ({
         id: project.id,
         name: project.name,

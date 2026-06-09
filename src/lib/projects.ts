@@ -32,6 +32,19 @@ export async function listProjectsForUser(userId: string) {
   });
 }
 
+export async function getPlanUsageForUser(userId: string) {
+  const currentUser = await requireCurrentUser(userId);
+  const plan = currentUser.organization.plan;
+  const activeProjects = await countActiveProjects(currentUser.organizationId);
+
+  return {
+    plan,
+    activeProjects,
+    limit: getProjectLimit(plan),
+    atLimit: isAtProjectLimit(plan, activeProjects)
+  };
+}
+
 type CreateProjectInput = {
   name?: unknown;
 };
